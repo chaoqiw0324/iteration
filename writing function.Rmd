@@ -1,0 +1,213 @@
+---
+title: "writing function"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rvest)
+```
+
+## Z scores
+```{r}
+x_vec = rnorm(25,5,4)
+
+(x_vec - mean(x_vec)) / sd(x_vec)
+
+z_scores = function(x){
+  z = (x - mean(x)) / sd(x)
+  return(z)
+}
+
+z_scores(x = x_vec)
+
+y_vec  =rnorm(40,12,0.3)
+z_scores(y_vec)
+```
+
+how great is this?
+
+```{r,eval=FALSE}
+
+z_scores(3)
+
+z_scores(c("my","name","is","jeff"))
+
+z_scores(mtcars)
+```
+
+```{r}
+z_scores = function(x){
+  if(!is.numeric(x)){
+    stop("x needs to be numeric")
+  }
+  
+  if(length(x)<3){
+    stop("x should have at least 3 numbers")
+  }
+  
+  z = (x - mean(x)) / sd(x)
+  return(z)
+}
+```
+
+## multiple outputs
+```{r}
+mean_and_sd = function(x){
+  if(!is.numeric(x)){
+    stop("x needs to be numeric")
+  }
+  
+  if(length(x)<3){
+    stop("x should have at least 3 numbers")
+  }
+  mean_x <-  mean(x)
+  sd_x <-  sd(x)
+  
+  output_df <- 
+    tibble(
+      mean = mean_x,
+      sd = sd_x
+    )
+  
+  return(output_df)
+}
+
+mean_and_sd(y_vec)
+```
+
+## Different sample sizes, means ,sds
+```{r}
+sim_data = 
+  tibble(
+    x = rnorm(30,2,3)
+  )
+
+
+sim_data %>% 
+  summarize(
+    mean = mean(x),
+    sd = sd(x)
+  )
+```
+
+Let's write a function that simulates data,computes the mean and sd
+
+```{r}
+sim_mean_sd <- function(n, mu = 2, sigma = 3) {
+  # do some checks
+  sim_data = tibble(
+    x = rnorm(n, mean = mu, sd = sigma),
+  )
+  
+  sim_data %>% 
+    summarize(
+      mu_hat = mean(x),
+      sigma_hat = sd(x)
+    )
+}
+sim_mean_sd(30,40,3)
+```
+
+```{r}
+url = "https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber=1"
+
+dynamite_html = read_html(url)
+
+review_titles = 
+  dynamite_html %>%
+  html_nodes(".a-text-bold span") %>%
+  html_text()
+
+review_stars = 
+  dynamite_html %>%
+  html_nodes("#cm_cr-review_list .review-rating") %>%
+  html_text() %>%
+  str_extract("^\\d") %>%
+  as.numeric()
+
+review_text = 
+  dynamite_html %>%
+  html_nodes(".review-text-content span") %>%
+  html_text() %>% 
+  str_replace_all("\n", "") %>% 
+  str_trim()
+
+reviews = tibble(
+  title = review_titles,
+  stars = review_stars,
+  text = review_text
+)
+```
+
+there is a lot of pages of reviews
+write a function to read page quickly
+
+```{r}
+read_page_reviews <- function(url) {
+  
+  html = read_html(url)
+  
+  review_titles = 
+    html %>%
+    html_nodes(".a-text-bold span") %>%
+    html_text()
+  
+  review_stars = 
+    html %>%
+    html_nodes("#cm_cr-review_list .review-rating") %>%
+    html_text() %>%
+    str_extract("^\\d") %>%
+    as.numeric()
+  
+  review_text = 
+    html %>%
+    html_nodes(".review-text-content span") %>%
+    html_text() %>% 
+    str_replace_all("\n", "") %>% 
+    str_trim()
+  
+reviews = tibble(
+  title = review_titles,
+  stars = review_stars,
+  text = review_text
+  )
+  return(reviews)
+}
+
+url = "https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber=1"
+read_page_reviews(url)
+```
+
+Next we’ll use this to read in reviews from a few pages and combine the results.
+
+```{r}
+
+
+url_base = "https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber="
+vec_urls = str_c(url_base, 1:5)
+
+dynamite_reviews = bind_rows(
+  read_page_reviews(vec_urls[1]),
+  read_page_reviews(vec_urls[2]),
+  read_page_reviews(vec_urls[3]),
+  read_page_reviews(vec_urls[4]),
+  read_page_reviews(vec_urls[5])
+)
+
+dynamite_reviews
+```
+
+```{r}
+f = function(x) {
+  z = x + y
+  z
+}
+
+x = 1
+y = 2
+
+f(x = y)
+```
+
